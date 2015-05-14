@@ -24,7 +24,7 @@ class GeneratorCommand extends AbstractCommand
     {
         $this
             ->setName('crud:generator')
-            ->setDescription('generator crud')
+            ->setDescription('Gerar arquivos a partir de um banco de dados')
             ->addOption('tables', null, InputOption::VALUE_REQUIRED, 'define tables generator');
     }
 

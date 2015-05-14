@@ -58,5 +58,7 @@ if ($app['debug']) {
 $app['twig']->addExtension(new Crud\Twig\AssetTwigFunction($app));
 $app['twig']->addExtension(new Crud\Twig\CamelizeTwigFunction($app));
 
+// http://silex.sensiolabs.org/doc/providers/security.html
+$app->register(new Crud\Provider\SecurityServiceProvider());
 
 return $app;
