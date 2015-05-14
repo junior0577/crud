@@ -7,14 +7,15 @@ namespace Crud\Provider;
 
 use Silex\Application;
 use Silex\ServiceProviderInterface;
-use Crud\Service\ServiceControllerResolver;
+use Silex\ServiceControllerResolver;
+use Crud\Service\ControllerResolver;
 
 /**
- * Class ControllerServiceProvider
+ * Class ServiceControllerServiceProvider
  *
  * http://silex.sensiolabs.org/doc/providers/service_controller.html
  */
-class ControllerServiceProvider implements ServiceProviderInterface
+class ServiceControllerServiceProvider implements ServiceProviderInterface
 {
     /**
      * Registers services on the given app.
@@ -26,11 +27,9 @@ class ControllerServiceProvider implements ServiceProviderInterface
      */
     public function register(Application $app)
     {
-        $app['resolver'] = $app->share(
-            function () use ($app) {
-                return new ServiceControllerResolver($app, $app['logger']);
-            }
-        );
+        $app['resolver'] = $app->share($app->extend('resolver', function ($resolver, $app) {
+            return new ServiceControllerResolver(new ControllerResolver($app, $app['logger']), $app['callback_resolver']);
+        }));
     }
 
     /**

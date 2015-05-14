@@ -5,15 +5,15 @@
 
 namespace Crud\Service;
 
+use Silex\ControllerResolver as BaseControllerResolver;
 use Crud\Controller\ContainerAware;
-use Silex\ControllerResolver;
 
 /**
- * Class ServiceControllerResolver
+ * Class ControllerResolver
  *
  * http://silex.sensiolabs.org/doc/providers.html#controller-providers
  */
-class ServiceControllerResolver extends ControllerResolver
+class ControllerResolver extends BaseControllerResolver
 {
     /**
      * @see Silex\ControllerResolver::createController

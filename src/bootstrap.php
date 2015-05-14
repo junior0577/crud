@@ -34,7 +34,7 @@ $app->register(new Crud\Provider\DoctrineServiceProvider());
 $app->register(new Crud\Provider\SwiftmailerServiceProvider());
 
 // http://silex.sensiolabs.org/doc/providers/service_controller.html
-$app->register(new Crud\Provider\ControllerServiceProvider());
+$app->register(new Crud\Provider\ServiceControllerServiceProvider());
 
 // ExceptionServiceProvider
 $app->register(new Crud\Provider\ExceptionServiceProvider());
@@ -42,8 +42,21 @@ $app->register(new Crud\Provider\ExceptionServiceProvider());
 // http://silex.sensiolabs.org/doc/providers/twig.html
 $app->register(new Crud\Provider\TwigServiceProvider());
 
+// http://silex.sensiolabs.org/doc/providers/monolog.html
+$app->register(new Silex\Provider\MonologServiceProvider(), array(
+    'monolog.logfile' => __DIR__.'/../var/logs/silex_dev.log',
+));
+
+if ($app['debug']) {
+    // https://github.com/silexphp/Silex-WebProfiler
+    $app->register(new Silex\Provider\WebProfilerServiceProvider(), array(
+        'profiler.cache_dir' => __DIR__.'/../var/cache/profiler',
+    ));
+}
+
 // http://twig.sensiolabs.org/doc/advanced.html#creating-an-extension
 $app['twig']->addExtension(new Crud\Twig\AssetTwigFunction($app));
 $app['twig']->addExtension(new Crud\Twig\CamelizeTwigFunction($app));
+
 
 return $app;
