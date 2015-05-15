@@ -8,6 +8,7 @@ namespace Crud\Generator\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Security\Core\User\User;
 
 /**
  * Class UserCreateCommand
@@ -36,7 +37,7 @@ class UserCreateCommand extends AbstractCommand
         $dialog = $this->getHelper('dialog');
 
         // Capturar nome
-        $name = $dialog->askAndValidate($output, '<fg=yellow>Nome:</fg=yellow> ', function ($value) {
+        $name = $dialog->askAndValidate($output, '<comment>Nome:</comment> ', function ($value) {
             if ('' === trim($value) || strlen(trim($value)) < 5) {
                 throw new \Exception('Preencha o nome completo, o nome deve ter no mínimo 5 caracteres.');
             }
@@ -45,7 +46,7 @@ class UserCreateCommand extends AbstractCommand
         });
 
         // Capturar nome de usuário
-        $username = $dialog->askAndValidate($output, '<fg=yellow>Nome de usuário:</fg=yellow> ', function ($value) {
+        $username = $dialog->askAndValidate($output, '<comment>Nome de usuário:</comment> ', function ($value) {
             if ('' === trim($value) || strlen(trim($value)) < 5) {
                 throw new \Exception('Preencha o nome de usuário, o nome de usuário deve ter no mínimo 5 caracteres.');
             }
@@ -54,7 +55,7 @@ class UserCreateCommand extends AbstractCommand
         });
 
         // Capturar email
-        $email = $dialog->askAndValidate($output, '<fg=yellow>E-mail:</fg=yellow> ', function ($value) {
+        $email = $dialog->askAndValidate($output, '<comment>E-mail:</comment> ', function ($value) {
             if (!filter_var($value, FILTER_VALIDATE_EMAIL)) {
                 throw new \Exception('Preencha o e-mail, informe um e-mail válido.');
             }
@@ -63,7 +64,7 @@ class UserCreateCommand extends AbstractCommand
         });
 
         // Capturar senha
-        $password = $dialog->askHiddenResponseAndValidate($output, '<fg=yellow>Senha:</fg=yellow> ', function ($value) use ($input) {
+        $password = $dialog->askHiddenResponseAndValidate($output, '<comment>Senha:</comment> ', function ($value) use ($input) {
             if ('' === trim($value) || strlen(trim($value)) < 3) {
                 throw new \Exception('Preencha a senha, sua senha deve ter no mínimo 3 caracteres.');
             }
@@ -76,7 +77,7 @@ class UserCreateCommand extends AbstractCommand
         });
 
         // Criar novo usuário
-        $user = new \Symfony\Component\Security\Core\User\User($username, $password);
+        $user = new User($username, $password);
         $encoder = $this->get('security.encoder_factory')->getEncoder($user);
         $password = $encoder->encodePassword($user->getPassword(), $user->getSalt());
 
