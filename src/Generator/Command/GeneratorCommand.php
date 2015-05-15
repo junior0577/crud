@@ -38,13 +38,18 @@ class GeneratorCommand extends AbstractCommand
     {
         $getTables = array_map(function ($value) { return array_values($value)[0]; }, $this->get('db')->fetchAll('SHOW TABLES', array()));
 
+        // Remove a tabela de usuário da lista
+        $getTables = array_filter($getTables, function ($campo) {
+            return $campo !== 'users';
+        });
+
+        if (count($getTables) === 0) {
+            return $output->writeln('<error>Nenhuma tabela foi encontrada.</error>');
+        }
+
         if ($input->getOption('tables') === null) {
             $helper = $this->getHelper('question');
-            $question = new ChoiceQuestion(
-                'Select the tables to generate the crud (defaults all tables)',
-                $getTables,
-                implode(',', array_keys($getTables))
-            );
+            $question = new ChoiceQuestion('Selecione as tabelas para gerar os padrões CRUD <comment>(pressione enter para selecionar todas)</comment>', $getTables, implode(',', array_keys($getTables)));
             $question->setMultiselect(true);
             $tables_generate = $helper->ask($input, $output, $question);
         } else {
@@ -57,8 +62,11 @@ class GeneratorCommand extends AbstractCommand
             }
         }
 
-        // show tables selected
-        $output->writeln('You have just selected: <comment>'.implode('</comment>, <comment>', $tables_generate).'</comment>');
+        if (count($tables_generate) === 0) {
+            return $output->writeln('<error>Nenhuma tabela foi selecionada.</error>');
+        }
+
+        $output->writeln('Você selecionou: <comment>'.implode('</comment>, <comment>', $tables_generate).'</comment>');
 
         $tables = array();
         foreach ($tables_generate as $table_info) {
@@ -273,7 +281,7 @@ class GeneratorCommand extends AbstractCommand
             $file_contents = array_map(function ($line) { return preg_replace('/\n/', '', $line); }, file($file_menus));
 
             $table_lower = strtolower($table);
-            $table_upper = ucfirst($table);
+            $table_upper = implode(' ', array_map('ucfirst', explode('_', $table)));
 
             if (!preg_grep(sprintf('/\{\{([ ]*)path\(([ ]*)\'%s\'([ ]*)\)/', strtolower($table_lower)), $file_contents)) {
                 $file_contents[] = '<li {% if menu_selected is defined and menu_selected == \''.$table_lower.'\' %}class="active"{% endif %}>';
