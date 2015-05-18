@@ -7,9 +7,16 @@ use Silex\Application;
 
 $app = new Application();
 
-// Settings
+/**
+ * Configurações
+ */
+// Url painel
 $app['security_path'] = '/security';
+
+// Prefixo url
 $app['asset_path'] = '/';
+
+// Habilitar modo desenvolvedor
 $app['debug'] = true;
 
 // http://silex.sensiolabs.org/doc/providers/session.html
@@ -44,13 +51,13 @@ $app->register(new Crud\Provider\TwigServiceProvider());
 
 // http://silex.sensiolabs.org/doc/providers/monolog.html
 $app->register(new Silex\Provider\MonologServiceProvider(), array(
-    'monolog.logfile' => __DIR__.'/../var/logs/silex_dev.log',
+    'monolog.logfile' => __DIR__.sprintf('/../var/logs/%s.log', (new \DateTime())->format('Y-m-d')),
 ));
 
 if ($app['debug']) {
     // https://github.com/silexphp/Silex-WebProfiler
     $app->register(new Silex\Provider\WebProfilerServiceProvider(), array(
-        'profiler.cache_dir' => __DIR__.'/../var/cache/profiler',
+        'profiler.cache_dir' => __DIR__.'/../var/cache',
     ));
 }
 

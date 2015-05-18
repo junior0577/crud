@@ -31,23 +31,20 @@ class ExceptionServiceProvider implements ServiceProviderInterface
                 if ($app['debug']) {
                     return; // exibir erro no ambiente desenvolvimento.
                 }
-                switch ($code) {
-                    case 404:
-                        $message = $app['twig']->render('security/error.twig', array(
-                            'code' => 404,
-                            'message' => 'Page not found, we could not find the page you were looking for.',
-                            'error' => $e->getMessage(),
-                        ));
-                        break;
-                    default:
-                        $message = $app['twig']->render('security/error.twig', array(
-                            'code' => 500,
-                            'message' => 'Something went wrong, we will work on fixing that right away.',
-                            'error' => $e->getMessage(),
-                        ));
-                }
 
-                return new Response($message, $code);
+                // Exibir pagina de erro personalizada.
+                // busca pagina de erro pelo código 404.html, 40x.html, 4xx.html ou error.html
+                $templates = array(
+                    'errors/'.$code.'.html',
+                    'errors/'.substr($code, 0, 2).'x.html',
+                    'errors/'.substr($code, 0, 1).'xx.html',
+                    'errors/error.html',
+                );
+
+                return new Response($app['twig']->resolveTemplate($templates)->render(array(
+                    'code' => $code,
+                    'error' => $e->getMessage(),
+                )), $code);
             }
         );
     }
