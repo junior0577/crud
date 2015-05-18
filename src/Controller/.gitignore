@@ -1,0 +1,4 @@
+*
+!.gitignore
+!ContainerAware.php
+!SecurityController.php

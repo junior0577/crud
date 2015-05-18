@@ -3,14 +3,15 @@
  *  (c) Rogério Adriano da Silva <rogerioadris.silva@gmail.com>
  */
 
-namespace Crud\Generator\Command;
+namespace Crud\Command;
 
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ChoiceQuestion;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Filesystem\Filesystem;
-use Crud\Generator\Helper\CamelCaseHelper;
+use Crud\Helper\CamelCaseHelper;
 
 /**
  * Class GeneratorCommand
@@ -36,6 +37,7 @@ class GeneratorCommand extends AbstractCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        // Busca todas tabelas do banco
         $getTables = array_map(function ($value) { return array_values($value)[0]; }, $this->get('db')->fetchAll('SHOW TABLES', array()));
 
         // Remove a tabela de usuário da lista
@@ -49,7 +51,7 @@ class GeneratorCommand extends AbstractCommand
 
         if ($input->getOption('tables') === null) {
             $helper = $this->getHelper('question');
-            $question = new ChoiceQuestion('Selecione as tabelas para gerar os padrões CRUD <comment>(pressione enter para selecionar todas)</comment>', $getTables, implode(',', array_keys($getTables)));
+            $question = new ChoiceQuestion('Selecione as tabelas para gerar os padrões CRUD <comment>(pressione em branco para selecionar todas)</comment>', $getTables, implode(',', array_keys($getTables)));
             $question->setMultiselect(true);
             $tables_generate = $helper->ask($input, $output, $question);
         } else {
@@ -69,18 +71,47 @@ class GeneratorCommand extends AbstractCommand
         $output->writeln('Você selecionou: <comment>'.implode('</comment>, <comment>', $tables_generate).'</comment>');
 
         $tables = array();
-        foreach ($tables_generate as $table_info) {
-            $table_name = $table_info;
-            $table_column = array();
-            $table_form = array();
+        foreach ($tables_generate as $table_name) {
+            if ($output->isVerbose()) {
+                $output->writeln(sprintf('Capturando informações sobre a tabela <comment>"%s"</comment>', $table_name));
+            }
+            $table_info = $this->getInfoTable($table_name, $input, $output);
+            if (is_array($table_info)) {
+                $tables[$table_name] = $table_info;
+            } else {
+                if ($output->isVerbose()) {
+                    $output->writeln(sprintf('<info>A tabela "%s" não será gerada.</info>', $table_name));
+                }
+            }
+        }
+        $output->writeln('Aguarde estamos gerando...');
 
-            $table_result = $this->get('db')->fetchAll(sprintf('DESC `%s`', $table_name), array());
+        foreach ($tables as $table_name => $data) {
+            $this->createController($table_name, $data, $input, $output);
+            $this->createViews($table_name, $data, $input, $output);
+            $this->createRoutes($table_name, $data, $input, $output);
+            $this->createMenu($table_name, $data, $input, $output);
+        }
+    }
 
-            $primary_key = null;
-            $primary_keys = 0;
-            $primary_keys_auto = 0;
+    /**
+     * Retorna informações sobre a tablela
+     *
+     * @param  string $table_name
+     * @return array
+     */
+    private function getInfoTable($table_name, InputInterface $input, OutputInterface $output)
+    {
+        $table_column = array();
+        $table_form = array();
 
-            array_map(function ($column) use (&$primary_keys, &$primary_keys_auto) {
+        $table_result = $this->get('db')->fetchAll(sprintf('DESC `%s`', $table_name), array());
+
+        $primary_key = null;
+        $primary_keys = 0;
+        $primary_keys_auto = 0;
+
+        array_map(function ($column) use (&$primary_keys, &$primary_keys_auto) {
                 if ($column['Key'] === 'PRI') {
                     $primary_keys++;
                 }
@@ -89,16 +120,16 @@ class GeneratorCommand extends AbstractCommand
                 }
             }, $table_result);
 
-            if (!($primary_keys === 1 || ($primary_keys > 1 && $primary_keys_auto === 1))) {
-                continue;
+        if (!($primary_keys === 1 || ($primary_keys > 1 && $primary_keys_auto === 1))) {
+            return;
+        }
+
+        foreach ($table_result as $column) {
+            if ((($primary_keys > 1 && $primary_keys_auto == 1) and ($column['Extra'] == 'auto_increment')) or ($column['Key'] == "PRI")) {
+                $primary_key = $column['Field'];
             }
 
-            foreach ($table_result as $column) {
-                if ((($primary_keys > 1 && $primary_keys_auto == 1) and ($column['Extra'] == 'auto_increment')) or ($column['Key'] == "PRI")) {
-                    $primary_key = $column['Field'];
-                }
-
-                $table_result_column = array(
+            $table_result_column = array(
                     'name' => $column['Field'],
                     'title' => ucfirst($column['Field']),
                     'primary' => $column['Field'] == $primary_key ? true : false,
@@ -108,8 +139,8 @@ class GeneratorCommand extends AbstractCommand
                     'lenght' => (int) preg_replace('/[^\d+]/', '', $column['Type']),
                 );
 
-                if (!in_array(strtolower($column['Field']), array('id', 'created', 'updated'))) {
-                    switch ($table_result_column['type']) {
+            if (!in_array(strtolower($column['Field']), array('id', 'created', 'updated'))) {
+                switch ($table_result_column['type']) {
                         case 'text':
                         case 'tinytext':
                         case 'mediumtext':
@@ -129,83 +160,101 @@ class GeneratorCommand extends AbstractCommand
                             break;
                     }
 
-                    $table_form[] = array_merge($table_result_column, array(
+                $table_form[] = array_merge($table_result_column, array(
                         'type' => $type_form,
                         'validation_regex' => $regex,
                     ));
-                }
-                $table_column[] = $table_result_column;
             }
-
-            $tables[$table_name] = array(
-                'primary_key' => $primary_key,
-                'columns' => $table_column,
-                'columns_form' => $table_form,
-            );
+            $table_column[] = $table_result_column;
         }
 
-        $output->writeln('Generating');
-        foreach ($tables as $table => $data) {
-            $this->createController($table, $data);
-            $this->createViews($table, $data);
-            $this->createRoutes($table);
-            $this->createMenu($table);
-        }
-    }
-
-    private function createController($table, array $data)
-    {
-        $fs = new Filesystem();
-        $dir_controller = realpath(__DIR__.'/../../Controller');
-
-        $table_camel = CamelCaseHelper::encode($table, true);
-
-        $controller = $this->get('twig')->render('generator/controller.twig', array('table' => $table, 'data' => $data, 'table_camel' => $table_camel));
-        $fs->dumpFile(sprintf('%s/%sController.php', $dir_controller, $table_camel), $controller);
+        return array(
+            'primary_key' => $primary_key,
+            'columns' => $table_column,
+            'columns_form' => $table_form,
+        );
     }
 
     /**
-     * @param string $table
-     * @param array  $data
+     * Gerar controller
      *
-     * @return
+     * @param  string          $table_name
+     * @param  array           $data
+     * @param  InputInterface  $input
+     * @param  OutputInterface $output
      */
-    private function createViews($table, array $data)
+    private function createController($table_name, array $data, InputInterface $input, OutputInterface $output)
+    {
+        if ($output->isVerbose()) {
+            $output->writeln(sprintf('Gerando controller da tabela <comment>"%s"</comment>', $table_name));
+        }
+        $fs = new Filesystem();
+        $dir_controller = realpath(__DIR__.'/../Controller');
+
+        $table_camel = CamelCaseHelper::encode($table_name, true);
+        $file_controller = sprintf('%s/%sController.php', $dir_controller, $table_camel);
+
+        if (is_file($file_controller)) {
+
+        }
+
+        $helper = $this->getHelper('question');
+        $question = new ConfirmationQuestion('O arquivo controller já existe deseja subistituir? <info>(y ou n)</info>: ');
+
+        if (!$helper->ask($input, $output, $question)) {
+            $output->writeln(sprintf('O arquivo <comment>"%s"</comment> não foi alterado.', $file_controller));
+            return;
+        }
+
+        $controller = $this->get('twig')->render('generator/controller.twig', array('table' => $table_name, 'data' => $data, 'table_camel' => $table_camel));
+        $fs->dumpFile($file_controller, $controller);
+    }
+
+    /**
+     * Gerar views
+     *
+     * @param  string          $table_name
+     * @param  array           $data
+     * @param  InputInterface  $input
+     * @param  OutputInterface $output
+     */
+    private function createViews($table_name, array $data, InputInterface $input, OutputInterface $output)
     {
         $fs = new Filesystem();
-        $dir_views = realpath(__DIR__.'/../../../views/');
-        $dir_view = sprintf('%s/%s', $dir_views, $table);
+        $dir_views = realpath(__DIR__.'/../../views/');
+        $dir_view = sprintf('%s/%s', $dir_views, $table_name);
 
         if ($fs->exists($dir_view) === false) {
             $fs->mkdir($dir_view, 0755);
         }
 
-        $list_view = $this->get('twig')->render('generator/views/theme.twig', array('table' => $table, 'data' => $data));
+        $list_view = $this->get('twig')->render('generator/theme.twig', array('table' => $table_name, 'data' => $data));
         $fs->dumpFile(sprintf('%s/theme.twig', $dir_view), $list_view);
 
-        $list_view = $this->get('twig')->render('generator/views/list.twig', array('table' => $table, 'data' => $data));
+        $list_view = $this->get('twig')->render('generator/list.twig', array('table' => $table_name, 'data' => $data));
         $fs->dumpFile(sprintf('%s/list.twig', $dir_view), $list_view);
 
-        $list_view = $this->get('twig')->render('generator/views/create.twig', array('table' => $table, 'data' => $data));
+        $list_view = $this->get('twig')->render('generator/create.twig', array('table' => $table_name, 'data' => $data));
         $fs->dumpFile(sprintf('%s/create.twig', $dir_view), $list_view);
 
-        $list_view = $this->get('twig')->render('generator/views/edit.twig', array('table' => $table, 'data' => $data));
+        $list_view = $this->get('twig')->render('generator/edit.twig', array('table' => $table_name, 'data' => $data));
         $fs->dumpFile(sprintf('%s/edit.twig', $dir_view), $list_view);
     }
 
     /**
-     * @param string $table
+     * Adicionar rotas no arquivo de rotas
      *
-     * @return
+     * @param  string          $table_name
+     * @param  array           $data
+     * @param  InputInterface  $input
+     * @param  OutputInterface $output
      */
-    public function createRoutes($table)
+    public function createRoutes($table_name, array $data, InputInterface $input, OutputInterface $output)
     {
         $fs = new Filesystem();
-        $file_routes = __DIR__.'/../../routes.php';
-
+        $file_routes = __DIR__.'/../routes.php';
         if ($fs->exists($file_routes)) {
             $file_contents = array_map(function ($line) { return preg_replace('/\n/', '', $line); }, file($file_routes));
-
             $table_routes = array();
             $exists = array(
                 'index' => false,
@@ -214,15 +263,12 @@ class GeneratorCommand extends AbstractCommand
                 'edit' => false,
                 'delete' => false,
             );
-
-            $table_lower = strtolower($table);
-            $table_camel = CamelCaseHelper::encode($table, true);
-
+            $table_lower = strtolower($table_name);
+            $table_camel = CamelCaseHelper::encode($table_name, true);
             foreach (array_keys($exists) as $route) {
                 $lines_found = array_keys(preg_grep(sprintf('/\'%s::%s\'/i', $table_camel, $route), $file_contents));
                 $exists[$route] = count($lines_found) === 1;
             }
-
             if ($exists['index'] === false) {
                 $table_routes[] = "\$route->get(sprintf('/%s/{$table_lower}', \$app['security_path']), '{$table_camel}::index')->bind('{$table_lower}');";
             }
@@ -238,9 +284,7 @@ class GeneratorCommand extends AbstractCommand
             if ($exists['delete'] === false) {
                 $table_routes[] = "\$route->get(sprintf('/%s/{$table_lower}/delete/{id}', \$app['security_path']), '{$table_camel}::delete')->bind('{$table_lower}_delete');";
             }
-
             $last_line = array_keys(preg_grep('/return/', $file_contents))[0];
-
             // Rewriting
             $rewriting = array();
             $line_blank = 0;
@@ -262,27 +306,26 @@ class GeneratorCommand extends AbstractCommand
                     $rewriting[] = $value;
                 }
             }
-
             $fs->dumpFile($file_routes, implode("\n", $rewriting));
         }
     }
 
     /**
-     * @param string $table
+     * Adicionar link no menu
      *
-     * @return
+     * @param  string          $table_name
+     * @param  array           $data
+     * @param  InputInterface  $input
+     * @param  OutputInterface $output
      */
-    public function createMenu($table)
+    public function createMenu($table_name, array $data, InputInterface $input, OutputInterface $output)
     {
         $fs = new Filesystem();
-        $file_menus = __DIR__.'/../../../views/menu.twig';
-
+        $file_menus = __DIR__.'/../../views/menu.twig';
         if ($fs->exists($file_menus)) {
             $file_contents = array_map(function ($line) { return preg_replace('/\n/', '', $line); }, file($file_menus));
-
-            $table_lower = strtolower($table);
-            $table_upper = implode(' ', array_map('ucfirst', explode('_', $table)));
-
+            $table_lower = strtolower($table_name);
+            $table_upper = ucfirst($table_name);
             if (!preg_grep(sprintf('/\{\{([ ]*)path\(([ ]*)\'%s\'([ ]*)\)/', strtolower($table_lower)), $file_contents)) {
                 $file_contents[] = '<li {% if menu_selected is defined and menu_selected == \''.$table_lower.'\' %}class="active"{% endif %}>';
                 $file_contents[] = "\t<a href=\"{{ path('{$table_lower}') }}\">";
@@ -290,7 +333,6 @@ class GeneratorCommand extends AbstractCommand
                 $file_contents[] = "\t</a>";
                 $file_contents[] = '</li>';
             }
-
             $fs->dumpFile($file_menus, implode("\n", $file_contents));
         }
     }

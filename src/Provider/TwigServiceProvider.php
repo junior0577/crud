@@ -23,7 +23,6 @@ class TwigServiceProvider extends BaseTwigServiceProvider
         parent::register($app);
         $app['twig.path'] = array(
             realpath(__DIR__.'/../../views'),
-            'generator' => realpath(__DIR__.'/../Generator/views'),
         );
         $app['twig.options'] = array('cache' => false, 'strict_variables' => true);
     }

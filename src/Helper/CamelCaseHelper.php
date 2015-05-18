@@ -3,7 +3,7 @@
  *  (c) Rogério Adriano da Silva <rogerioadris.silva@gmail.com>
  */
 
-namespace Crud\Generator\Helper;
+namespace Crud\Helper;
 
 /**
  * Class CamelCaseHelper

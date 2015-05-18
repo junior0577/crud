@@ -23,10 +23,10 @@ class DoctrineServiceProvider extends BaseDoctrineServiceProvider
         $app['dbs.options'] = array(
             'db' => array(
                 'driver'   => 'pdo_mysql',
-                'dbname'   => 'bevicred',
+                'dbname'   => 'DATABASE_NAME',
                 'host'     => '127.0.0.1',
-                'user'     => 'root',
-                'password' => 'r0g3r10',
+                'user'     => 'DATABASE_USER',
+                'password' => 'DATABASE_PASS',
                 'charset'  => 'utf8',
             ),
         );

@@ -3,7 +3,7 @@
  *  (c) Rogério Adriano da Silva <rogerioadris.silva@gmail.com>
  */
 
-namespace Crud\Generator\Command;
+namespace Crud\Command;
 
 use Symfony\Component\Console\Command\Command;
 use Silex\Application;

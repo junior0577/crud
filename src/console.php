@@ -4,7 +4,7 @@
  */
 
 use Symfony\Component\Console\Application;
-use Crud\Generator\Command as Commands;
+use Crud\Command as Commands;
 
 $console = new Application('CRUD Admin Generator command instalation', '1.0');
 

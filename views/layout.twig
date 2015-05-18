@@ -11,7 +11,10 @@
     <link href="{{ asset('lib/datatables/media/css/jquery.dataTables.min.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('lib/datatables-bootstrap3-plugin/media/css/datatables-bootstrap3.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('css/AdminLTE.css') }}" rel="stylesheet" type="text/css" />
+    <link href="{{ asset('css/skins/skin-blue.min.css') }}" rel="stylesheet" type="text/css" />
     <link href="{{ asset('css/main.css') }}" rel="stylesheet" type="text/css" />
+
+    {% block stylesheet %}{% endblock %}
 
     <!-- HTML5 Shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
@@ -20,69 +23,69 @@
       <script src="https://oss.maxcdn.com/libs/respond.js/1.3.0/respond.min.js"></script>
     <![endif]-->
 </head>
-<body {% block body_param %}class="skin-black"{% endblock body_param %}>
+<body {% block body_param %}class="skin-blue fixed"{% endblock body_param %}>
     {% block body %}
         {% block header %}
-            <header class="header">
-                <a href="/" class="logo">Generate CRUD</a>
-                <nav class="navbar navbar-static-top" role="navigation">
-                    <!-- Sidebar toggle button-->
-                    <a href="#" class="navbar-btn sidebar-toggle" data-toggle="offcanvas" role="button">
-                        <span class="sr-only">Toggle navigation</span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                        <span class="icon-bar"></span>
-                    </a>
+            <header class="main-header">
+                <a href="/" class="logo"><b>CRUD</b>Admin</a>
+                <nav class="navbar navbar-static-top">
+                    <div class="container-fluid">
+                        <div class="navbar-header">
+                            <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar-collapse">
+                                <i class="fa fa-bars"></i>
+                            </button>
+                        </div>
+                        <!-- Collect the nav links, forms, and other content for toggling -->
+                        <div class="collapse navbar-collapse" id="navbar-collapse">
+                            <ul class="nav navbar-nav navbar-right">
+                                <li><a href="/{{ app.security_path }}/logout" style="text-transform: capitalize;">{{ app.security.token.user.username }} <i class="fa fa-sign-out"></i></a></li>
+                            </ul>
+                        </div>
+                        <!-- /.navbar-collapse -->
+                    </div>
+                    <!-- /.container-fluid -->
                 </nav>
             </header>
         {% endblock header %}
         {% block wrapper %}
-            <div class="wrapper row-offcanvas row-offcanvas-left">
-
-                <aside class="left-side sidebar-offcanvas">
-                    <!-- sidebar: style can be found in sidebar.less -->
-                    <section class="sidebar">
-                        <!-- sidebar menu: : style can be found in sidebar.less -->
+            <aside class="control-sidebar control-sidebar-light">
+                <div class="main-sidebar">
+                    <!-- Inner sidebar -->
+                    <div class="sidebar">
+                        <!-- Search Form (Optional) -->
+                        <!-- <form action="#" method="get" class="sidebar-form">
+                            <div class="input-group">
+                                <input type="text" name="q" class="form-control" placeholder="Buscar..." />
+                                <span class="input-group-btn">
+                                  <button type='submit' name='search' id='search-btn' class="btn btn-flat"><i class="fa fa-search"></i></button>
+                                </span>
+                            </div>
+                        </form> -->
+                        <!-- /.sidebar-form -->
+                        <!-- Sidebar Menu -->
                         <ul class="sidebar-menu">
+                            <li class="header">MENU</li>
                             {% block menu %}{% include 'menu.twig' %}{% endblock %}
-                            <li class="user">
-                                <a href="/{{ app.security_path }}/logout">
-                                    <i class="fa fa-user"></i> <span>{{ app.security.token.user.username }} (logout)</span>
-                                </a>
-                            </li>
                         </ul>
-                    </section><!-- /.sidebar -->
-                </aside>
+                        <!-- /.sidebar-menu -->
+                    </div>
+                    <!-- /.sidebar -->
+                </div>
+                <!-- /.main-sidebar -->
+            </aside>
 
-                <!-- Right side column. Contains the navbar and content of the page -->
-                <aside class="right-side">
-                    {% block message %}
-                        <br>
-                        {% set alertTypeAvaillable = [ 'info', 'success', 'warning', 'danger'] %}
-                        {% if app.session.flashbag is defined %}
-                            {% for alertType in alertTypeAvaillable %}
-                                {% for alert in app.session.flashBag.get(alertType) %}
-                                    <div class="alert alert-{{ alertType }} alert-dismissable">
-                                        {% if alertType == 'info' %}
-                                            <i class="fa fa-info"></i>
-                                        {% elseif alertType == 'success' %}
-                                            <i class="fa fa-check"></i>
-                                        {% elseif alertType == 'warning' %}
-                                            <i class="fa fa-exclamation"></i>
-                                        {% elseif alertType == 'danger' %}
-                                            <i class="fa fa-warning"></i>
-                                        {% endif %}
-                                        <button type="button" class="close" data-dismiss="alert" aria-hidden="true">×</button>
-                                        <b>{{ alert.message }}</b>
-                                    </div>
-                                {% endfor %}
-                            {% endfor %}
-                        {% endif %}
-                    {% endblock message %}
-                    {% block content %}{% endblock %}
-                </aside><!-- /.right-side -->
-            </div><!-- ./wrapper -->
+            <!-- Content Wrapper. Contains page content -->
+            <div class="content-wrapper">
+                {% block content %}{% endblock %}
+                <!-- /.content -->
+            </div>
+            <!-- /.content-wrapper -->
+
         {% endblock wrapper %}
+        <footer class="main-footer">
+            <div class="pull-right hidden-xs"> <b>Version</b> {{app.version}} </div>
+            <strong>&copy; {{ 'now'|date('Y') }}
+        </footer>
     {% endblock body %}
 
     <script src="{{ asset('lib/jquery/dist/jquery.min.js') }}"></script>
@@ -92,6 +95,7 @@
     <script src="{{ asset('lib/bootstrap3-wysihtml5/dist/bootstrap-wysihtml5-0.0.2.js') }}"></script>
     <script src="{{ asset('lib/datatables/media/js/jquery.dataTables.min.js') }}"></script>
     <script src="{{ asset('lib/datatables-bootstrap3-plugin/media/js/datatables-bootstrap3.js') }}"></script>
+    <script src="{{ asset('js/datatables.js') }}"></script>
     {% block script %}{% endblock script %}
 </body>
 </html>

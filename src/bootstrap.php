@@ -19,6 +19,8 @@ $app['asset_path'] = '/';
 // Habilitar modo desenvolvedor
 $app['debug'] = true;
 
+$app['version'] = '0.0.2';
+
 // http://silex.sensiolabs.org/doc/providers/session.html
 $app->register(new Crud\Provider\SessionServiceProvider());
 

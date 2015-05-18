@@ -6,7 +6,7 @@
 namespace Crud\Controller;
 
 use Silex\Application;
-use Crud\Generator\Helper\CamelCaseHelper;
+use Crud\Helper\CamelCaseHelper;
 
 /**
  * Class ContainerAware
